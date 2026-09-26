@@ -93,6 +93,7 @@ export const ContractDetailPage: React.FC = () => {
 
   // Table filtering states
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedObligation, setSelectedObligation] = useState<ObligationOut | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [riskBandFilter, setRiskBandFilter] = useState('ALL');
@@ -709,7 +710,10 @@ export const ContractDetailPage: React.FC = () => {
                     {filteredObligations.map((ob: ObligationOut) => (
                       <tr key={ob.id} className="hover:bg-slate-800/40 transition-colors">
                         {/* Actor */}
-                        <td className="px-4 py-3.5 align-top">
+                        <td
+                            className="px-4 py-3.5 align-top cursor-pointer hover:bg-slate-800/40 transition-colors"
+                            onClick={() => setSelectedObligation(ob)}
+                          >
                           <span className="font-semibold text-slate-200 block">
                             {ob.actor || '—'}
                           </span>
@@ -860,6 +864,201 @@ export const ContractDetailPage: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 space-y-1">
           <span className="font-semibold text-slate-300 block">Notice</span>
           <p className="leading-relaxed">{disclaimer}</p>
+        </div>
+      )}
+            {/* Evidence / Source Inspection Drawer */}
+      {selectedObligation && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <button
+            type="button"
+            aria-label="Close source inspection"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            onClick={() => setSelectedObligation(null)}
+          />
+
+          {/* Drawer */}
+          <aside
+            className="relative z-10 h-full w-full max-w-xl overflow-y-auto border-l border-slate-700 bg-slate-950 shadow-2xl"
+            aria-label="Source Inspection"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-800 bg-slate-950/95 px-6 py-4 backdrop-blur">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                  Evidence &amp; provenance
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-white">
+                  Source Inspection
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                aria-label="Close source inspection"
+                onClick={() => setSelectedObligation(null)}
+                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6 p-6">
+              {/* Obligation details */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Obligation
+                </h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase text-slate-500">Actor</p>
+                    <p className="mt-1 text-sm text-slate-200">
+                      {selectedObligation.actor || '—'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase text-slate-500">
+                      Counterparty
+                    </p>
+                    <p className="mt-1 text-sm text-slate-200">
+                      {selectedObligation.counterparty || 'None specified'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase text-slate-500">Action</p>
+                    <p className="mt-1 text-sm text-slate-200">
+                      {selectedObligation.action || '—'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase text-slate-500">Object</p>
+                    <p className="mt-1 text-sm text-slate-200">
+                      {selectedObligation.object || '—'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase text-slate-500">Modality</p>
+                    <p className="mt-1 text-sm text-slate-200">
+                      {selectedObligation.modality || '—'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase text-slate-500">Category</p>
+                    <p className="mt-1 text-sm text-slate-200">
+                      {selectedObligation.category || '—'}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Evidence */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Evidence
+                </h3>
+
+                {selectedObligation.evidence_quote ? (
+                  <blockquote className="rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm leading-relaxed text-slate-200">
+                    “{selectedObligation.evidence_quote}”
+                  </blockquote>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/50 p-4 text-sm italic text-slate-500">
+                    No Evidence Quote Available
+                  </div>
+                )}
+
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-md border border-slate-700 px-2 py-1 text-slate-400">
+                    Status: {selectedObligation.evidence_status || '—'}
+                  </span>
+
+                  {selectedObligation.page_start != null && (
+                    <span className="rounded-md border border-slate-700 px-2 py-1 text-slate-400">
+                      Page: {selectedObligation.page_start}
+                      {selectedObligation.page_end &&
+                      selectedObligation.page_end !== selectedObligation.page_start
+                        ? `–${selectedObligation.page_end}`
+                        : ''}
+                      {selectedObligation.page_approx ? ' (approx)' : ''}
+                    </span>
+                  )}
+                </div>
+              </section>
+
+              {/* Confidence */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Confidence &amp; provenance
+                </h3>
+
+                <div className="space-y-3">
+                  {selectedObligation.evidence_score != null && (
+                    <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                      <span className="text-xs text-slate-400">
+                        Evidence score
+                      </span>
+                      <span className="text-sm font-mono text-slate-200">
+                        {(selectedObligation.evidence_score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedObligation.llm_confidence != null && (
+                    <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                      <span className="text-xs text-slate-400">
+                        LLM confidence
+                      </span>
+                      <span className="text-sm font-mono text-slate-200">
+                        {(selectedObligation.llm_confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedObligation.date_provenance && (
+                    <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                      <p className="text-[10px] uppercase text-slate-500">
+                        Date provenance
+                      </p>
+                      <p className="mt-1 text-xs text-slate-300">
+                        {selectedObligation.date_provenance}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedObligation.field_provenance && (
+                    <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-3">
+                      <p className="mb-2 text-[10px] uppercase text-slate-500">
+                        Field provenance
+                      </p>
+
+                      <div className="space-y-1.5">
+                        {Object.entries(selectedObligation.field_provenance).map(
+                          ([field, provenance]) => (
+                            <div
+                              key={field}
+                              className="flex items-center justify-between gap-3"
+                            >
+                              <span className="text-xs text-slate-400">
+                                {field}
+                              </span>
+                              <span className="rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300">
+                                {String(provenance)}
+                              </span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          </aside>
         </div>
       )}
     </div>
