@@ -618,7 +618,7 @@ export const ContractDetailPage: React.FC = () => {
             {/* Title & Status Badges */}
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white break-words">
+                <h1 className="min-w-0 flex-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-white break-words">
                   {contract.name || 'Untitled Contract'}
                 </h1>
                 <div className="flex items-center gap-2 shrink-0">
@@ -655,7 +655,7 @@ export const ContractDetailPage: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                 </svg>
                 <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider">ID</span>
-                <span className="font-mono text-slate-200">{contract.id}</span>
+                <span className="min-w-0 max-w-[180px] truncate font-mono text-slate-200" title={contract.id}>{contract.id}</span>
               </div>
 
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300 shadow-sm">
@@ -723,7 +723,7 @@ export const ContractDetailPage: React.FC = () => {
                 return (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl bg-slate-800/50 border border-slate-700/80 hover:border-slate-600 transition-colors flex items-start gap-3 shadow-sm"
+                    className="min-w-0 p-3.5 rounded-xl bg-slate-800/50 border border-slate-700/80 hover:border-slate-600 transition-colors flex items-start gap-3 shadow-sm"
                   >
                     <div
                       className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
@@ -744,7 +744,7 @@ export const ContractDetailPage: React.FC = () => {
                       </svg>
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
                         <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
                           {party.role ? party.role : 'Party'}
                         </span>
@@ -773,72 +773,45 @@ export const ContractDetailPage: React.FC = () => {
       {/* Summary Statistics: Responsive Grid with Five Metrics */}
       {activeView === 'overview' && (stats ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
-                  Obligations
-                </span>
-                <span className="w-2 h-2 rounded-full bg-blue-400" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
-                {stats.obligations}
-              </p>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Contract at a glance</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">Portfolio summary</h2>
             </div>
-
-            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
-                  Clauses
-                </span>
-                <span className="w-2 h-2 rounded-full bg-slate-400" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
-                {stats.clauses}
-              </p>
-            </div>
-
-            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
-                  Needs Review
-                </span>
-                <span className={`w-2 h-2 rounded-full ${stats.needs_review > 0 ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'}`} />
-              </div>
-              <p className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${stats.needs_review > 0 ? 'text-amber-400' : 'text-slate-300'}`}>
-                {stats.needs_review}
-              </p>
-            </div>
-
-            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
-                  Unresolved Dates
-                </span>
-                <span className="w-2 h-2 rounded-full bg-slate-500" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-200 font-mono tracking-tight">
-                {stats.unresolved_dates}
-              </p>
-            </div>
-
-            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm col-span-2 sm:col-span-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
-                  Clauses w/o Ob.
-                </span>
-                <span className="w-2 h-2 rounded-full bg-slate-600" />
-              </div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-400 font-mono tracking-tight">
-                {stats.clauses_without_obligations}
-              </p>
-            </div>
+            <span className="hidden sm:inline text-xs text-slate-500">Live from this contract analysis</span>
+          </div>
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+            <Link to={`/contracts/${contractId}/obligations${location.search}`} className="overview-metric group border-l-4 border-l-sky-500">
+              <span className="overview-metric-label">Obligations</span>
+              <span className="overview-metric-value">{stats.obligations}</span>
+              <span className="overview-metric-note">Extracted commitments <span aria-hidden="true">→</span></span>
+            </Link>
+            <Link to={`/contracts/${contractId}/timeline${location.search}`} className="overview-metric group border-l-4 border-l-amber-400">
+              <span className="overview-metric-label">Awaiting dates</span>
+              <span className="overview-metric-value">{stats.unresolved_dates}</span>
+              <span className="overview-metric-note">Unresolved deadlines <span aria-hidden="true">→</span></span>
+            </Link>
+            <Link to={`/contracts/${contractId}/risk${location.search}`} className="overview-metric group border-l-4 border-l-rose-400">
+              <span className="overview-metric-label">Open conflicts</span>
+              <span className="overview-metric-value">{conflicts.filter((conflict) => conflict.status === 'open').length}</span>
+              <span className="overview-metric-note">Potential inconsistencies <span aria-hidden="true">→</span></span>
+            </Link>
+            <Link to={`/contracts/${contractId}/dependencies${location.search}`} className="overview-metric group border-l-4 border-l-indigo-400">
+              <span className="overview-metric-label">Dependencies</span>
+              <span className="overview-metric-value">{edges.length}</span>
+              <span className="overview-metric-note">Linked obligations <span aria-hidden="true">→</span></span>
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
+            <span><strong className="font-semibold text-slate-900">{stats.clauses}</strong> clauses analyzed</span>
+            <span><strong className="font-semibold text-slate-900">{stats.needs_review}</strong> obligations need review</span>
+            <span><strong className="font-semibold text-slate-900">{stats.clauses_without_obligations}</strong> clauses without obligations</span>
           </div>
 
           {/* Stats Warnings if any */}
           {stats.warnings && stats.warnings.length > 0 && (
-            <div className="p-3.5 rounded-lg bg-amber-950/30 border border-amber-900/60 text-xs text-amber-300 space-y-1">
-              <span className="font-semibold block text-amber-200">
+            <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
+              <span className="font-semibold block text-amber-900">
                 Analysis Warnings ({stats.warnings.length})
               </span>
               <ul className="list-disc list-inside space-y-0.5 text-[11px]">
@@ -1010,7 +983,7 @@ export const ContractDetailPage: React.FC = () => {
 
       {/* Contract Inconsistencies Panel (Step 36) */}
       {activeView === 'risk' && <>
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <section className="overview-card rounded-xl border border-slate-200 bg-white p-5">
           <div className="mb-4"><h2 className="text-lg font-semibold text-slate-900">Obligation risk details</h2><p className="mt-1 text-sm text-slate-500">Scores, bands, and factors supplied by the contract analysis</p></div>
           {obligations.length ? (
             <div className="space-y-2">
@@ -1040,7 +1013,7 @@ export const ContractDetailPage: React.FC = () => {
 
       {activeView === 'overview' && (
         <>
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <section className="overview-card rounded-xl border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div><h2 className="text-lg font-semibold text-slate-900">Open conflicts</h2><p className="mt-1 text-sm text-slate-500">Potential inconsistencies flagged for review</p></div>
             <Link to={`/contracts/${contractId}/risk${location.search}`} className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900">Review all</Link>
@@ -1057,7 +1030,7 @@ export const ContractDetailPage: React.FC = () => {
           ) : <p className="text-sm text-slate-500">No open conflicts are currently flagged.</p>}
         </section>
         <div className="grid gap-4 xl:grid-cols-2">
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <section className="overview-card rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div><h2 className="text-lg font-semibold text-slate-900">Obligation snapshot</h2><p className="mt-1 text-sm text-slate-500">A quick look at extracted commitments</p></div>
               <Link to={`/contracts/${contractId}/obligations${location.search}`} className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900">View all</Link>
@@ -1074,7 +1047,7 @@ export const ContractDetailPage: React.FC = () => {
             ) : <p className="text-sm text-slate-500">No obligations were identified.</p>}
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <section className="overview-card rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div><h2 className="text-lg font-semibold text-slate-900">Key events</h2><p className="mt-1 text-sm text-slate-500">Contract dates and linked milestones</p></div>
               <Link to={`/contracts/${contractId}/timeline${location.search}`} className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900">Open timeline</Link>
