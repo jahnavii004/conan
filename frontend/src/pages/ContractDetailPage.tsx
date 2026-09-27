@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useContractAnalysis } from '../hooks/useContract';
 import { useReviewObligation, usePatchObligation } from '../hooks/useObligations';
+import { ContractTimeline } from '../components/ContractTimeline';
 import type {
   ObligationOut,
   ObligationPatch,
@@ -458,7 +459,7 @@ export const ContractDetailPage: React.FC = () => {
   }
 
   // 4. Successful state: extract data
-  const { contract, stats, obligations, as_of, disclaimer } = analysis;
+  const { contract, stats, obligations, edges, events, as_of, disclaimer } = analysis;
 
   return (
     <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
@@ -613,6 +614,15 @@ export const ContractDetailPage: React.FC = () => {
           No statistics available for this analysis.
         </div>
       )}
+
+      {/* Contract Timeline (Step 33) */}
+      <ContractTimeline
+        contractId={contract.id}
+        events={events}
+        obligations={obligations}
+        edges={edges}
+        onRefresh={() => refetch()}
+      />
 
       {/* Obligations Section */}
       <div className="space-y-4">
