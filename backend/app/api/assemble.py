@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.models import Clause, Conflict, Contract, Edge, Event, Obligation, ReviewAction
 from app.pipeline.risk import edge_propagates, score_all
 from app.pipeline.runner import latest_job
+from app.pipeline.temporal import event_key, upcoming_due
 from app.schemas import (
     Analysis, ClauseOut, ConflictOut, ContractOut, EdgeOut, EventOut, ObligationOut, Party, ReviewActionOut, Stats,
 )
@@ -20,6 +21,11 @@ NEEDS_REVIEW_BELOW = 0.6
 
 def needs_review(o: Obligation) -> bool:
     return o.review_state == "proposed" and (o.evidence_status != "verified" or o.confidence < NEEDS_REVIEW_BELOW)
+
+
+def _anchor_key(o: Obligation) -> str | None:
+    # same rule as recompute.sync_events / temporal.resolve, so 'other:<id>' events find their obligation
+    return event_key(o.id, (o.deadline_rule or {}).get("anchor_event") or o.trigger_event)
 
 
 def resolve_as_of(as_of: dt.date | None) -> dt.date:
@@ -40,6 +46,7 @@ def build_analysis(s: Session, contract: Contract, as_of: dt.date, reviewed_only
 
     risks = score_all(obligations, edges, conflicts, as_of, reviewed_only)
     obligation_out = [ObligationOut.model_validate({**o.model_dump(), "risk": risks[o.id],
+                                                   "due_date": upcoming_due(o, as_of),  # next occurrence if recurring
                                                    "needs_review": needs_review(o)}) for o in obligations]
     edge_out = [EdgeOut.model_validate({**e.model_dump(), "propagates": edge_propagates(e, reviewed_only)})
                 for e in edges]
@@ -60,8 +67,7 @@ def build_analysis(s: Session, contract: Contract, as_of: dt.date, reviewed_only
         edges=edge_out,
         events=[EventOut(key=e.key, label=e.label, date=e.date, date_source=e.date_source,
                          source_obligation_id=e.source_obligation_id,
-                         dependent_obligation_ids=sorted(o.id for o in obligations
-                                                         if (o.deadline_rule or {}).get("anchor_event") == e.key))
+                         dependent_obligation_ids=sorted(o.id for o in obligations if _anchor_key(o) == e.key))
                 for e in events],
         conflicts=[ConflictOut.model_validate(c, from_attributes=True) for c in conflicts],
         review_actions=[ReviewActionOut.model_validate(a, from_attributes=True) for a in actions],
