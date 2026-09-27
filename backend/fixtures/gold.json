@@ -1,0 +1,56 @@
+{
+  "items": [
+    {
+      "section_ref": "3.1",
+      "actor": "Velloran Components LLP",
+      "action": "deliver",
+      "object": "Goods specified in each Purchase Order",
+      "evidence_quote": "shall deliver the Goods specified in each Purchase Order to the Customer's Pune facility within ten (10) Business Days of the issuance of such Purchase Order",
+      "page": 2,
+      "deadline_kind": "relative",
+      "offset_value": 10,
+      "offset_unit": "day",
+      "day_type": "business",
+      "amount_value": null
+    },
+    {
+      "section_ref": "5.1",
+      "actor": "Tarnwick Robotics Pvt. Ltd.",
+      "action": "inspect and accept or reject",
+      "object": "the Goods",
+      "evidence_quote": "Customer shall inspect the Goods within five (5) Business Days of delivery and shall notify Supplier in writing of acceptance or rejection",
+      "page": 3,
+      "deadline_kind": "relative",
+      "offset_value": 5,
+      "offset_unit": "day",
+      "day_type": "business",
+      "amount_value": null
+    },
+    {
+      "section_ref": "6.2",
+      "actor": "Velloran Components LLP",
+      "action": "invoice",
+      "object": "Customer for the Goods",
+      "evidence_quote": "Upon Acceptance, Supplier may invoice Customer for the Goods",
+      "page": 4,
+      "deadline_kind": "none",
+      "offset_value": null,
+      "offset_unit": null,
+      "day_type": null,
+      "amount_value": 1840000
+    },
+    {
+      "section_ref": "6.3",
+      "actor": "Tarnwick Robotics Pvt. Ltd.",
+      "action": "pay",
+      "object": "all undisputed amounts",
+      "evidence_quote": "Customer shall pay all undisputed amounts within thirty (30) days of receipt of a valid invoice",
+      "page": 4,
+      "deadline_kind": "relative",
+      "offset_value": 30,
+      "offset_unit": "day",
+      "day_type": "calendar",
+      "amount_value": null
+    }
+  ]
+}
