@@ -512,75 +512,129 @@ export const ContractDetailPage: React.FC = () => {
 
   return (
     <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center justify-between">
+      {/* Clean Navigation Row: Back to Upload on left, Pipeline / Version on right */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
         <Link
           to="/upload"
-          className="inline-flex items-center text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors group"
         >
-          <span className="mr-1">&larr;</span> Back to Upload
+          <svg
+            className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-transform group-hover:-translate-x-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Back to Upload</span>
         </Link>
-        <span className="text-xs font-mono text-slate-500">
-          Pipeline v{contract.pipeline_version}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-medium text-slate-400 bg-slate-900 border border-slate-800 shadow-sm">
+            Pipeline v{contract.pipeline_version}
+          </span>
+        </div>
       </div>
 
-      {/* Offline Demo Banner */}
+      {/* Clear Offline Demo / Read-Only Banner */}
       {isOffline && (
-        <div className="p-3.5 rounded-lg border border-amber-800/80 bg-amber-950/40 text-amber-200 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
-            <span className="font-semibold text-amber-100">
-              Offline Demo Data (Read-Only)
-            </span>
-            <span className="text-amber-300/80 hidden sm:inline">
-              — changes and exports are disabled.
+        <div className="p-4 sm:p-5 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/70 via-amber-900/30 to-amber-950/70 text-amber-200 shadow-lg shadow-amber-950/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 text-amber-400 mt-0.5 sm:mt-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-amber-100 text-sm tracking-tight">
+                  Offline Demo Mode (Read-Only)
+                </h3>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+              </div>
+              <p className="text-xs text-amber-300/80">
+                Viewing bundled local contract data. Modifications, review submissions, and live exports are restricted.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+            <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold tracking-wider uppercase bg-amber-900/60 text-amber-300 border border-amber-700/80">
+              Bundled Fixture
             </span>
           </div>
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-amber-900/60 text-amber-300 border border-amber-700/80">
-            Bundled Fixture
-          </span>
         </div>
       )}
 
       {/* Contract Header */}
-      <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/80 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                {contract.name || 'Untitled Contract'}
-              </h1>
-              {contract.is_sample && (
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-purple-950/70 text-purple-300 border border-purple-800">
-                  Sample Contract
-                </span>
-              )}
-              {isOffline && (
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-amber-950/70 text-amber-300 border border-amber-800">
-                  OFFLINE DEMO
-                </span>
-              )}
+      <div className="p-6 sm:p-7 rounded-2xl border border-slate-800 bg-slate-900/90 shadow-xl space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className="space-y-4 flex-1 min-w-0">
+            {/* Title & Status Badges */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white break-words">
+                  {contract.name || 'Untitled Contract'}
+                </h1>
+                <div className="flex items-center gap-2 shrink-0">
+                  {contract.is_sample && (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-purple-950/80 text-purple-300 border border-purple-700/80 shadow-sm">
+                      Sample Contract
+                    </span>
+                  )}
+                  {isOffline && (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-amber-950/80 text-amber-300 border border-amber-700/80 shadow-sm">
+                      Offline Demo
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {contract.filename && (
-              <p className="text-xs font-mono text-slate-400">
-                Source File: {contract.filename}
-              </p>
-            )}
+            {/* Separate Metadata Chips: Source File, Contract ID, Page Count, Analyzed Date */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {contract.filename && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300 shadow-sm">
+                  <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider">Source</span>
+                  <span className="font-mono text-slate-200 truncate max-w-[200px] sm:max-w-xs" title={contract.filename}>
+                    {contract.filename}
+                  </span>
+                </div>
+              )}
 
-            <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
-              <span>
-                Contract ID: <span className="font-mono text-slate-300">{contract.id}</span>
-              </span>
-              <span>•</span>
-              <span>{contract.page_count} pages</span>
-              <span>•</span>
-              <span>Analyzed as of: {formatDate(as_of)}</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300 shadow-sm">
+                <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                </svg>
+                <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider">ID</span>
+                <span className="font-mono text-slate-200">{contract.id}</span>
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300 shadow-sm">
+                <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider">Pages</span>
+                <span className="font-medium text-slate-200">{contract.page_count}</span>
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300 shadow-sm">
+                <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider">Analyzed</span>
+                <span className="font-medium text-slate-200">{formatDate(as_of)}</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          {/* Export and Upload Actions: Properly Aligned */}
+          <div className="flex items-center gap-3 shrink-0 self-start lg:self-auto pt-1 lg:pt-0">
             <ContractExportDropdown
               contractId={contract.id}
               contractName={contract.name}
@@ -588,87 +642,151 @@ export const ContractDetailPage: React.FC = () => {
             />
             <Link
               to="/upload"
-              className="px-3.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 hover:text-white transition-colors shrink-0 text-center"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 hover:text-white transition-colors shrink-0 shadow-sm"
             >
-              Upload Another
+              <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Upload Another</span>
             </Link>
           </div>
         </div>
 
-        {/* Identified Parties */}
-        <div className="pt-4 border-t border-slate-800/80 space-y-2">
-          <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
-            Identified Parties
-          </span>
+        {/* Responsive Customer / Supplier Party Cards */}
+        <div className="pt-5 border-t border-slate-800/90 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-semibold">
+              Identified Contract Parties
+            </span>
+            {contract.parties && contract.parties.length > 0 && (
+              <span className="text-[11px] font-mono text-slate-500">
+                {contract.parties.length} {contract.parties.length === 1 ? 'party' : 'parties'} detected
+              </span>
+            )}
+          </div>
           {contract.parties && contract.parties.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {contract.parties.map((party: Party, idx: number) => (
-                <div
-                  key={idx}
-                  className="px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-xs text-slate-200 flex items-center space-x-1.5"
-                >
-                  <span className="font-medium">{party.name}</span>
-                  {party.role && (
-                    <span className="text-[11px] font-mono text-slate-400">
-                      ({party.role})
-                    </span>
-                  )}
-                </div>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {contract.parties.map((party: Party, idx: number) => {
+                const roleLower = party.role?.toLowerCase() || '';
+                const isCustomer = roleLower.includes('customer') || roleLower.includes('client') || roleLower.includes('buyer');
+                const isSupplier = roleLower.includes('supplier') || roleLower.includes('vendor') || roleLower.includes('seller') || roleLower.includes('provider');
+
+                const roleBadgeClass = isCustomer
+                  ? 'bg-blue-950/70 text-blue-300 border-blue-800/80'
+                  : isSupplier
+                  ? 'bg-emerald-950/70 text-emerald-300 border-emerald-800/80'
+                  : 'bg-slate-800 text-slate-300 border-slate-700';
+
+                return (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-xl bg-slate-800/50 border border-slate-700/80 hover:border-slate-600 transition-colors flex items-start gap-3 shadow-sm"
+                  >
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
+                        isCustomer
+                          ? 'bg-blue-900/30 border-blue-700/50 text-blue-400'
+                          : isSupplier
+                          ? 'bg-emerald-900/30 border-emerald-700/50 text-emerald-400'
+                          : 'bg-slate-800 border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                          {party.role ? party.role : 'Party'}
+                        </span>
+                        {party.role && (
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border font-medium ${roleBadgeClass}`}>
+                            {party.role}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-semibold text-white truncate" title={party.name}>
+                        {party.name}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <p className="text-xs text-slate-500 italic">
+            <p className="text-xs text-slate-500 italic bg-slate-800/30 p-3.5 rounded-lg border border-slate-800/80">
               No parties identified in this contract.
             </p>
           )}
         </div>
       </div>
 
-      {/* Summary Statistics */}
+      {/* Summary Statistics: Responsive Grid with Five Metrics */}
       {stats ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 space-y-1">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Obligations
-              </span>
-              <p className="text-2xl font-bold text-white font-mono">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
+                  Obligations
+                </span>
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
                 {stats.obligations}
               </p>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 space-y-1">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Clauses
-              </span>
-              <p className="text-2xl font-bold text-white font-mono">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
+                  Clauses
+                </span>
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
                 {stats.clauses}
               </p>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 space-y-1">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Needs Review
-              </span>
-              <p className="text-2xl font-bold text-amber-400 font-mono">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
+                  Needs Review
+                </span>
+                <span className={`w-2 h-2 rounded-full ${stats.needs_review > 0 ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'}`} />
+              </div>
+              <p className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${stats.needs_review > 0 ? 'text-amber-400' : 'text-slate-300'}`}>
                 {stats.needs_review}
               </p>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 space-y-1">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Unresolved Dates
-              </span>
-              <p className="text-2xl font-bold text-slate-300 font-mono">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
+                  Unresolved Dates
+                </span>
+                <span className="w-2 h-2 rounded-full bg-slate-500" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-200 font-mono tracking-tight">
                 {stats.unresolved_dates}
               </p>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 space-y-1">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Clauses w/o Ob.
-              </span>
-              <p className="text-2xl font-bold text-slate-400 font-mono">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-medium">
+                  Clauses w/o Ob.
+                </span>
+                <span className="w-2 h-2 rounded-full bg-slate-600" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-400 font-mono tracking-tight">
                 {stats.clauses_without_obligations}
               </p>
             </div>
