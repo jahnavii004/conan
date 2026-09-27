@@ -4,6 +4,7 @@ import { useContractAnalysis } from '../hooks/useContract';
 import { useReviewObligation, usePatchObligation } from '../hooks/useObligations';
 import { ContractTimeline } from '../components/ContractTimeline';
 import { ContractDependencyGraph } from '../components/ContractDependencyGraph';
+import { ObligationRiskSection } from '../components/ObligationRiskSection';
 import type {
   ObligationOut,
   ObligationPatch,
@@ -277,6 +278,35 @@ export const ContractDetailPage: React.FC = () => {
       if (o.review_state) set.add(o.review_state);
     });
     return Array.from(set).sort();
+  }, [analysis?.obligations]);
+
+  // Obligation lookup map for fast downstream/upstream context
+  const obligationMap = useMemo(() => {
+    const map = new Map<string, ObligationOut>();
+    if (analysis?.obligations) {
+      analysis.obligations.forEach((o) => {
+        map.set(o.id, o);
+      });
+    }
+    return map;
+  }, [analysis?.obligations]);
+
+  // Aggregate risk band counts directly from backend obligation.risk.band
+  const riskCounts = useMemo(() => {
+    const counts: Record<RiskBand, number> = {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+    };
+    if (analysis?.obligations) {
+      for (const ob of analysis.obligations) {
+        if (ob.risk?.band && ob.risk.band in counts) {
+          counts[ob.risk.band]++;
+        }
+      }
+    }
+    return counts;
   }, [analysis?.obligations]);
 
   // Frontend-only filtered obligations
@@ -615,6 +645,159 @@ export const ContractDetailPage: React.FC = () => {
           No statistics available for this analysis.
         </div>
       )}
+
+      {/* Contract Risk Overview (Step 35) */}
+      <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/70 space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-rose-950/60 border border-rose-800/80 flex items-center justify-center text-rose-300 shrink-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-white">Risk Overview</h2>
+              <p className="text-xs text-slate-400">
+                Operational exposure and attention priority breakdown
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded text-[11px] font-mono bg-slate-800 text-slate-400 border border-slate-700 italic self-start sm:self-auto">
+            Attention priority, not probability of breach
+          </span>
+        </div>
+
+        {/* 4 Risk Band Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Critical */}
+          <button
+            type="button"
+            onClick={() => setRiskBandFilter(riskBandFilter === 'critical' ? 'ALL' : 'critical')}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              riskBandFilter === 'critical'
+                ? 'bg-rose-950/90 border-rose-600 ring-1 ring-rose-500'
+                : 'bg-rose-950/40 border-rose-900/70 hover:bg-rose-950/60'
+            }`}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-semibold block">
+              Critical Risk
+            </span>
+            <div className="flex items-baseline justify-between mt-1">
+              <p className="text-2xl font-bold font-mono text-rose-200">
+                {riskCounts.critical}
+              </p>
+              <span className="text-[10px] text-rose-400/80 font-mono">
+                {obligations.length > 0 ? Math.round((riskCounts.critical / obligations.length) * 100) : 0}%
+              </span>
+            </div>
+          </button>
+
+          {/* High */}
+          <button
+            type="button"
+            onClick={() => setRiskBandFilter(riskBandFilter === 'high' ? 'ALL' : 'high')}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              riskBandFilter === 'high'
+                ? 'bg-amber-950/90 border-amber-600 ring-1 ring-amber-500'
+                : 'bg-amber-950/40 border-amber-900/70 hover:bg-amber-950/60'
+            }`}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-semibold block">
+              High Risk
+            </span>
+            <div className="flex items-baseline justify-between mt-1">
+              <p className="text-2xl font-bold font-mono text-amber-200">
+                {riskCounts.high}
+              </p>
+              <span className="text-[10px] text-amber-400/80 font-mono">
+                {obligations.length > 0 ? Math.round((riskCounts.high / obligations.length) * 100) : 0}%
+              </span>
+            </div>
+          </button>
+
+          {/* Medium */}
+          <button
+            type="button"
+            onClick={() => setRiskBandFilter(riskBandFilter === 'medium' ? 'ALL' : 'medium')}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              riskBandFilter === 'medium'
+                ? 'bg-yellow-950/90 border-yellow-600 ring-1 ring-yellow-500'
+                : 'bg-yellow-950/40 border-yellow-900/70 hover:bg-yellow-950/60'
+            }`}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-wider text-yellow-400 font-semibold block">
+              Medium Risk
+            </span>
+            <div className="flex items-baseline justify-between mt-1">
+              <p className="text-2xl font-bold font-mono text-yellow-200">
+                {riskCounts.medium}
+              </p>
+              <span className="text-[10px] text-yellow-400/80 font-mono">
+                {obligations.length > 0 ? Math.round((riskCounts.medium / obligations.length) * 100) : 0}%
+              </span>
+            </div>
+          </button>
+
+          {/* Low */}
+          <button
+            type="button"
+            onClick={() => setRiskBandFilter(riskBandFilter === 'low' ? 'ALL' : 'low')}
+            className={`p-3 rounded-lg border text-left transition-all ${
+              riskBandFilter === 'low'
+                ? 'bg-emerald-950/90 border-emerald-600 ring-1 ring-emerald-500'
+                : 'bg-emerald-950/40 border-emerald-900/70 hover:bg-emerald-950/60'
+            }`}
+          >
+            <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-semibold block">
+              Low Risk
+            </span>
+            <div className="flex items-baseline justify-between mt-1">
+              <p className="text-2xl font-bold font-mono text-emerald-200">
+                {riskCounts.low}
+              </p>
+              <span className="text-[10px] text-emerald-400/80 font-mono">
+                {obligations.length > 0 ? Math.round((riskCounts.low / obligations.length) * 100) : 0}%
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* Proportional Risk Distribution Bar */}
+        {obligations.length > 0 && (
+          <div className="space-y-1 pt-1">
+            <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden flex">
+              {riskCounts.critical > 0 && (
+                <div
+                  className="bg-rose-500 h-full"
+                  style={{ width: `${(riskCounts.critical / obligations.length) * 100}%` }}
+                  title={`Critical: ${riskCounts.critical} obligations`}
+                />
+              )}
+              {riskCounts.high > 0 && (
+                <div
+                  className="bg-amber-500 h-full"
+                  style={{ width: `${(riskCounts.high / obligations.length) * 100}%` }}
+                  title={`High: ${riskCounts.high} obligations`}
+                />
+              )}
+              {riskCounts.medium > 0 && (
+                <div
+                  className="bg-yellow-500 h-full"
+                  style={{ width: `${(riskCounts.medium / obligations.length) * 100}%` }}
+                  title={`Medium: ${riskCounts.medium} obligations`}
+                />
+              )}
+              {riskCounts.low > 0 && (
+                <div
+                  className="bg-emerald-500 h-full"
+                  style={{ width: `${(riskCounts.low / obligations.length) * 100}%` }}
+                  title={`Low: ${riskCounts.low} obligations`}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Contract Timeline (Step 33) */}
       <ContractTimeline
@@ -1210,6 +1393,14 @@ export const ContractDetailPage: React.FC = () => {
                   )}
                 </div>
               </section>
+
+              {/* Risk Assessment (Step 35) */}
+              {selectedObligation.risk && (
+                <ObligationRiskSection
+                  risk={selectedObligation.risk}
+                  obligationMap={obligationMap}
+                />
+              )}
             </div>
           </aside>
         </div>
@@ -1459,6 +1650,14 @@ export const ContractDetailPage: React.FC = () => {
                   )}
                 </div>
               </section>
+
+              {/* Risk Assessment (Step 35) */}
+              {reviewDrawerObligation.risk && (
+                <ObligationRiskSection
+                  risk={reviewDrawerObligation.risk}
+                  obligationMap={obligationMap}
+                />
+              )}
 
               {/* Current Review State */}
               <section>
