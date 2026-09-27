@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useContractAnalysis } from '../hooks/useContract';
+import { useReviewObligation, usePatchObligation } from '../hooks/useObligations';
 import type {
   ObligationOut,
+  ObligationPatch,
   Party,
   RiskBand,
   ObligationStatus,
   ReviewState,
   Modality,
+  Category,
 } from '../types/api';
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -98,6 +101,123 @@ export const ContractDetailPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [riskBandFilter, setRiskBandFilter] = useState('ALL');
   const [reviewStateFilter, setReviewStateFilter] = useState('ALL');
+
+  // Review Drawer state (separate from the Evidence/Source Inspection Drawer)
+  const [reviewDrawerObligation, setReviewDrawerObligation] = useState<ObligationOut | null>(null);
+  const [reviewMode, setReviewMode] = useState<'view' | 'edit'>('view');
+  const [reviewNote, setReviewNote] = useState('');
+  const [editFields, setEditFields] = useState<ObligationPatch>({});
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  // Mutation hooks
+  const reviewMutation = useReviewObligation();
+  const patchMutation = usePatchObligation();
+
+  const openReviewDrawer = useCallback((ob: ObligationOut) => {
+    setReviewDrawerObligation(ob);
+    setReviewMode('view');
+    setReviewNote('');
+    setEditFields({});
+    setReviewError(null);
+    reviewMutation.reset();
+    patchMutation.reset();
+  }, [reviewMutation, patchMutation]);
+
+  const closeReviewDrawer = useCallback(() => {
+    setReviewDrawerObligation(null);
+    setReviewMode('view');
+    setReviewNote('');
+    setEditFields({});
+    setReviewError(null);
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    if (!reviewDrawerObligation) return;
+    setReviewError(null);
+    reviewMutation.mutate(
+      {
+        obligationId: reviewDrawerObligation.id,
+        body: { action: 'confirm', note: reviewNote || undefined },
+      },
+      {
+        onSuccess: () => {
+          closeReviewDrawer();
+          refetch();
+        },
+        onError: (err) => setReviewError(err.message),
+      }
+    );
+  }, [reviewDrawerObligation, reviewNote, reviewMutation, closeReviewDrawer, refetch]);
+
+  const handleReject = useCallback(() => {
+    if (!reviewDrawerObligation) return;
+    setReviewError(null);
+    reviewMutation.mutate(
+      {
+        obligationId: reviewDrawerObligation.id,
+        body: { action: 'reject', note: reviewNote || undefined },
+      },
+      {
+        onSuccess: () => {
+          closeReviewDrawer();
+          refetch();
+        },
+        onError: (err) => setReviewError(err.message),
+      }
+    );
+  }, [reviewDrawerObligation, reviewNote, reviewMutation, closeReviewDrawer, refetch]);
+
+  const handleStartEdit = useCallback(() => {
+    if (!reviewDrawerObligation) return;
+    setReviewMode('edit');
+    setEditFields({
+      actor: reviewDrawerObligation.actor,
+      counterparty: reviewDrawerObligation.counterparty ?? '',
+      action: reviewDrawerObligation.action,
+      object: reviewDrawerObligation.object ?? '',
+      modality: reviewDrawerObligation.modality,
+      category: reviewDrawerObligation.category,
+    });
+  }, [reviewDrawerObligation]);
+
+  const handleSaveEdit = useCallback(() => {
+    if (!reviewDrawerObligation) return;
+    setReviewError(null);
+    // Build a clean patch with only changed fields
+    const patch: ObligationPatch = {};
+    if (editFields.actor !== undefined && editFields.actor !== reviewDrawerObligation.actor) patch.actor = editFields.actor;
+    if (editFields.counterparty !== undefined && editFields.counterparty !== (reviewDrawerObligation.counterparty ?? '')) patch.counterparty = editFields.counterparty || null;
+    if (editFields.action !== undefined && editFields.action !== reviewDrawerObligation.action) patch.action = editFields.action;
+    if (editFields.object !== undefined && editFields.object !== (reviewDrawerObligation.object ?? '')) patch.object = editFields.object || null;
+    if (editFields.modality !== undefined && editFields.modality !== reviewDrawerObligation.modality) patch.modality = editFields.modality;
+    if (editFields.category !== undefined && editFields.category !== reviewDrawerObligation.category) patch.category = editFields.category;
+
+    const hasChanges = Object.keys(patch).length > 0;
+
+    if (!hasChanges) {
+      setReviewMode('view');
+      return;
+    }
+
+    reviewMutation.mutate(
+      {
+        obligationId: reviewDrawerObligation.id,
+        body: { action: 'edit', patch, note: reviewNote || undefined },
+      },
+      {
+        onSuccess: () => {
+          closeReviewDrawer();
+          refetch();
+        },
+        onError: (err) => setReviewError(err.message),
+      }
+    );
+  }, [reviewDrawerObligation, editFields, reviewNote, reviewMutation, closeReviewDrawer, refetch]);
+
+  const isMutating = reviewMutation.isPending || patchMutation.isPending;
+
+  const CATEGORY_OPTIONS: Category[] = ['payment', 'renewal', 'termination', 'compliance', 'delivery', 'penalty', 'confidentiality', 'other'];
+  const MODALITY_OPTIONS: Modality[] = ['must', 'must_not', 'may'];
 
   const handleClearFilters = () => {
     setSearchQuery('');
@@ -704,6 +824,7 @@ export const ContractDetailPage: React.FC = () => {
                       <th scope="col" className="px-4 py-3 min-w-[100px]">Review</th>
                       <th scope="col" className="px-4 py-3 min-w-[90px]">Status</th>
                       <th scope="col" className="px-4 py-3 min-w-[200px]">Evidence</th>
+                      <th scope="col" className="px-4 py-3 min-w-[80px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/80">
@@ -848,6 +969,17 @@ export const ContractDetailPage: React.FC = () => {
                               No quote linked
                             </span>
                           )}
+                        </td>
+
+                        {/* Review Action */}
+                        <td className="px-4 py-3.5 align-top">
+                          <button
+                            type="button"
+                            onClick={() => openReviewDrawer(ob)}
+                            className="px-2.5 py-1 rounded-md bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-800/80 text-[11px] font-medium text-indigo-300 hover:text-indigo-200 transition-colors whitespace-nowrap"
+                          >
+                            Review
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1056,6 +1188,339 @@ export const ContractDetailPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </section>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Obligation Review Drawer */}
+      {reviewDrawerObligation && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <button
+            type="button"
+            aria-label="Close review drawer"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            onClick={closeReviewDrawer}
+          />
+
+          {/* Drawer */}
+          <aside
+            className="relative z-10 h-full w-full max-w-xl overflow-y-auto border-l border-slate-700 bg-slate-950 shadow-2xl"
+            aria-label="Obligation Review"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-800 bg-slate-950/95 px-6 py-4 backdrop-blur">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                  Obligation review
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-white">
+                  {reviewMode === 'edit' ? 'Edit Fields' : 'Review Obligation'}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                aria-label="Close review drawer"
+                onClick={closeReviewDrawer}
+                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6 p-6">
+              {/* Error Banner */}
+              {reviewError && (
+                <div className="rounded-lg border border-rose-800/80 bg-rose-950/40 px-4 py-3 text-xs text-rose-300">
+                  <span className="font-semibold">Error:</span> {reviewError}
+                </div>
+              )}
+
+              {/* Obligation Details Section */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Obligation Fields
+                </h3>
+
+                {reviewMode === 'edit' ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[10px] uppercase text-slate-500 block mb-1">Actor</label>
+                      <input
+                        type="text"
+                        value={editFields.actor ?? ''}
+                        onChange={(e) => setEditFields({ ...editFields, actor: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-slate-500 block mb-1">Counterparty</label>
+                      <input
+                        type="text"
+                        value={editFields.counterparty ?? ''}
+                        onChange={(e) => setEditFields({ ...editFields, counterparty: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-slate-500 block mb-1">Action</label>
+                      <input
+                        type="text"
+                        value={editFields.action ?? ''}
+                        onChange={(e) => setEditFields({ ...editFields, action: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-slate-500 block mb-1">Object</label>
+                      <input
+                        type="text"
+                        value={editFields.object ?? ''}
+                        onChange={(e) => setEditFields({ ...editFields, object: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-slate-500 block mb-1">Modality</label>
+                      <select
+                        value={editFields.modality ?? ''}
+                        onChange={(e) => setEditFields({ ...editFields, modality: e.target.value as Modality })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        {MODALITY_OPTIONS.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-slate-500 block mb-1">Category</label>
+                      <select
+                        value={editFields.category ?? ''}
+                        onChange={(e) => setEditFields({ ...editFields, category: e.target.value as Category })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        {CATEGORY_OPTIONS.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Actor</p>
+                      <p className="mt-1 text-sm text-slate-200">{reviewDrawerObligation.actor || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Counterparty</p>
+                      <p className="mt-1 text-sm text-slate-200">{reviewDrawerObligation.counterparty || 'None specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Action</p>
+                      <p className="mt-1 text-sm text-slate-200">{reviewDrawerObligation.action || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Object</p>
+                      <p className="mt-1 text-sm text-slate-200">{reviewDrawerObligation.object || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Modality</p>
+                      <p className="mt-1 text-sm text-slate-200">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase border ${getModalityBadgeClass(reviewDrawerObligation.modality)}`}>
+                          {reviewDrawerObligation.modality}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Category</p>
+                      <p className="mt-1 text-sm text-slate-200">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                          {reviewDrawerObligation.category}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* Due Date & Deadline */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Due Date &amp; Deadline
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                    <span className="text-xs text-slate-400">Due date</span>
+                    <span className="text-sm font-mono text-slate-200">{formatDate(reviewDrawerObligation.due_date)}</span>
+                  </div>
+                  {reviewDrawerObligation.deadline_rule && (
+                    <>
+                      <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                        <span className="text-xs text-slate-400">Rule kind</span>
+                        <span className="text-sm font-mono text-slate-200 capitalize">{reviewDrawerObligation.deadline_rule.kind}</span>
+                      </div>
+                      {reviewDrawerObligation.deadline_rule.raw_text && (
+                        <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                          <p className="text-[10px] uppercase text-slate-500">Raw date text</p>
+                          <p className="mt-1 text-xs text-slate-300 italic">"{reviewDrawerObligation.deadline_rule.raw_text}"</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                    <span className="text-xs text-slate-400">Resolution status</span>
+                    <span className="text-sm font-mono text-slate-200 capitalize">{reviewDrawerObligation.resolution_status.replace(/_/g, ' ')}</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Evidence */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Evidence
+                </h3>
+
+                {reviewDrawerObligation.evidence_quote ? (
+                  <blockquote className="rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm leading-relaxed text-slate-200">
+                    &ldquo;{reviewDrawerObligation.evidence_quote}&rdquo;
+                  </blockquote>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/50 p-4 text-sm italic text-slate-500">
+                    No evidence quote available
+                  </div>
+                )}
+
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-md border border-slate-700 px-2 py-1 text-slate-400">
+                    Status: {reviewDrawerObligation.evidence_status || '—'}
+                  </span>
+                  {reviewDrawerObligation.page_start != null && (
+                    <span className="rounded-md border border-slate-700 px-2 py-1 text-slate-400">
+                      Page: {reviewDrawerObligation.page_start}
+                      {reviewDrawerObligation.page_end && reviewDrawerObligation.page_end !== reviewDrawerObligation.page_start
+                        ? `–${reviewDrawerObligation.page_end}`
+                        : ''}
+                      {reviewDrawerObligation.page_approx ? ' (approx)' : ''}
+                    </span>
+                  )}
+                </div>
+              </section>
+
+              {/* Confidence & Scores */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Confidence &amp; Scores
+                </h3>
+                <div className="space-y-2">
+                  {reviewDrawerObligation.evidence_score != null && (
+                    <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                      <span className="text-xs text-slate-400">Evidence score</span>
+                      <span className="text-sm font-mono text-slate-200">
+                        {(reviewDrawerObligation.evidence_score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                    <span className="text-xs text-slate-400">Overall confidence</span>
+                    <span className="text-sm font-mono text-slate-200">
+                      {(reviewDrawerObligation.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  {reviewDrawerObligation.llm_confidence != null && (
+                    <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                      <span className="text-xs text-slate-400">LLM confidence</span>
+                      <span className="text-sm font-mono text-slate-200">
+                        {(reviewDrawerObligation.llm_confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Current Review State */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Review State
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-mono capitalize border ${getReviewStateBadgeClass(reviewDrawerObligation.review_state)}`}>
+                    {reviewDrawerObligation.review_state}
+                  </span>
+                  {reviewDrawerObligation.needs_review && (
+                    <span className="text-[11px] text-amber-400 font-medium">Review Needed</span>
+                  )}
+                </div>
+              </section>
+
+              {/* Reviewer Note */}
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Reviewer Note <span className="text-slate-600 normal-case">(optional)</span>
+                </h3>
+                <textarea
+                  value={reviewNote}
+                  onChange={(e) => setReviewNote(e.target.value)}
+                  placeholder="Add an optional note for this review action..."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500 resize-y"
+                />
+              </section>
+
+              {/* Action Buttons */}
+              <section className="border-t border-slate-800 pt-5">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Reviewer Actions
+                </h3>
+
+                {reviewMode === 'edit' ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveEdit}
+                      disabled={isMutating}
+                      className="flex-1 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {reviewMutation.isPending ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewMode('view')}
+                      disabled={isMutating}
+                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleConfirm}
+                      disabled={isMutating}
+                      className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {reviewMutation.isPending ? 'Confirming...' : '✓ Confirm'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReject}
+                      disabled={isMutating}
+                      className="px-4 py-2 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {reviewMutation.isPending ? 'Rejecting...' : '✕ Reject'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStartEdit}
+                      disabled={isMutating}
+                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-semibold text-slate-200 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      ✎ Edit Fields
+                    </button>
+                  </div>
+                )}
               </section>
             </div>
           </aside>
