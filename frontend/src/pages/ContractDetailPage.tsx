@@ -6,6 +6,7 @@ import { ContractTimeline } from '../components/ContractTimeline';
 import { ContractDependencyGraph } from '../components/ContractDependencyGraph';
 import { ObligationRiskSection } from '../components/ObligationRiskSection';
 import { ConflictPanel } from '../components/ConflictPanel';
+import { ContractExportDropdown } from '../components/ContractExportDropdown';
 import type {
   ObligationOut,
   ObligationPatch,
@@ -553,12 +554,18 @@ export const ContractDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <Link
-            to="/upload"
-            className="px-3.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 hover:text-white transition-colors shrink-0 text-center"
-          >
-            Upload Another
-          </Link>
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <ContractExportDropdown
+              contractId={contract.id}
+              contractName={contract.name}
+            />
+            <Link
+              to="/upload"
+              className="px-3.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 hover:text-white transition-colors shrink-0 text-center"
+            >
+              Upload Another
+            </Link>
+          </div>
         </div>
 
         {/* Identified Parties */}
