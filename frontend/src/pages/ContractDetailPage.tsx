@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useContractAnalysis } from '../hooks/useContract';
 import { useReviewObligation, usePatchObligation } from '../hooks/useObligations';
 import { ContractTimeline } from '../components/ContractTimeline';
@@ -90,6 +90,12 @@ function getModalityBadgeClass(modality: Modality): string {
 export const ContractDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const contractId = id?.trim();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const requestedView = location.pathname.split('/')[3] || 'overview';
+  const activeView = requestedView === 'conflicts' || !['overview', 'obligations', 'timeline', 'dependencies', 'risk'].includes(requestedView)
+    ? (requestedView === 'conflicts' ? 'risk' : 'overview')
+    : requestedView;
 
   const [searchParams] = useSearchParams();
   const isOffline = searchParams.get('offline') === '1' || contractId === 'demo';
@@ -511,7 +517,44 @@ export const ContractDetailPage: React.FC = () => {
   const { contract, stats, obligations, edges, events, conflicts, clauses, as_of, disclaimer } = analysis;
 
   return (
-    <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+    <div className="contract-app min-h-screen flex-1">
+      <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
+        <aside className="contract-sidebar border-b border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r">
+          <div className="flex items-center gap-3 px-5 py-4 lg:border-b lg:border-slate-200 lg:px-6 lg:py-5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 9h8L7 7Zm10 0-4 9h8l-4-9ZM5 21h14" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+            <div className="min-w-0"><p className="text-sm font-semibold tracking-tight text-slate-900">Conan</p><p className="text-xs text-slate-500">Contract workspace</p></div>
+          </div>
+          <nav aria-label="Contract sections" className="flex flex-wrap gap-1 px-3 py-2 lg:block lg:space-y-1 lg:px-3 lg:py-5">
+            {[
+              ['Overview', ''],
+              ['Obligations', '/obligations'],
+              ['Timeline', '/timeline'],
+              ['Dependencies', '/dependencies'],
+              ['Risk & Conflicts', '/risk'],
+            ].map(([label, path]) => {
+              const selected = (path === '' && activeView === 'overview') || path.slice(1) === activeView || (path === '/risk' && activeView === 'risk');
+              return (
+                <Link
+                  key={label}
+                  to={`/contracts/${contractId}${path}${location.search}`}
+                  aria-current={selected ? 'page' : undefined}
+                  className={`inline-flex shrink-0 items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:flex ${selected ? 'bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="hidden border-t border-slate-200 px-6 py-4 text-xs text-slate-500 lg:block">
+            <span className="mb-2 block font-medium uppercase tracking-wide text-slate-400">Current contract</span>
+            <span className="block truncate font-medium text-slate-700" title={contract.name}>{contract.name || 'Untitled Contract'}</span>
+            <span className="mt-1 block">{isOffline ? 'Offline demo · Read-only' : 'Analysis workspace'}</span>
+          </div>
+        </aside>
+        <main className="min-w-0 flex-1">
+    <div className="mx-auto w-full max-w-7xl space-y-7 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Clean Navigation Row: Back to Upload on left, Pipeline / Version on right */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
         <Link
@@ -647,7 +690,7 @@ export const ContractDetailPage: React.FC = () => {
               <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span>Upload Another</span>
+              <span>Upload Contract</span>
             </Link>
           </div>
         </div>
@@ -728,7 +771,7 @@ export const ContractDetailPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics: Responsive Grid with Five Metrics */}
-      {stats ? (
+      {activeView === 'overview' && (stats ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
             <div className="p-4 sm:p-5 rounded-xl border border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-colors space-y-2 shadow-sm">
@@ -810,10 +853,10 @@ export const ContractDetailPage: React.FC = () => {
         <div className="p-4 rounded-lg bg-slate-900/40 border border-slate-800 text-xs text-slate-500 italic">
           No statistics available for this analysis.
         </div>
-      )}
+      ))}
 
       {/* Contract Risk Overview (Step 35) */}
-      <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/70 space-y-3.5">
+      {(activeView === 'overview' || activeView === 'risk') && <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-rose-950/60 border border-rose-800/80 flex items-center justify-center text-rose-300 shrink-0">
@@ -838,7 +881,7 @@ export const ContractDetailPage: React.FC = () => {
           {/* Critical */}
           <button
             type="button"
-            onClick={() => setRiskBandFilter(riskBandFilter === 'critical' ? 'ALL' : 'critical')}
+            onClick={() => { setRiskBandFilter(riskBandFilter === 'critical' ? 'ALL' : 'critical'); navigate(`/contracts/${contractId}/obligations${location.search}`); }}
             className={`p-3 rounded-lg border text-left transition-all ${
               riskBandFilter === 'critical'
                 ? 'bg-rose-950/90 border-rose-600 ring-1 ring-rose-500'
@@ -861,7 +904,7 @@ export const ContractDetailPage: React.FC = () => {
           {/* High */}
           <button
             type="button"
-            onClick={() => setRiskBandFilter(riskBandFilter === 'high' ? 'ALL' : 'high')}
+            onClick={() => { setRiskBandFilter(riskBandFilter === 'high' ? 'ALL' : 'high'); navigate(`/contracts/${contractId}/obligations${location.search}`); }}
             className={`p-3 rounded-lg border text-left transition-all ${
               riskBandFilter === 'high'
                 ? 'bg-amber-950/90 border-amber-600 ring-1 ring-amber-500'
@@ -884,7 +927,7 @@ export const ContractDetailPage: React.FC = () => {
           {/* Medium */}
           <button
             type="button"
-            onClick={() => setRiskBandFilter(riskBandFilter === 'medium' ? 'ALL' : 'medium')}
+            onClick={() => { setRiskBandFilter(riskBandFilter === 'medium' ? 'ALL' : 'medium'); navigate(`/contracts/${contractId}/obligations${location.search}`); }}
             className={`p-3 rounded-lg border text-left transition-all ${
               riskBandFilter === 'medium'
                 ? 'bg-yellow-950/90 border-yellow-600 ring-1 ring-yellow-500'
@@ -907,7 +950,7 @@ export const ContractDetailPage: React.FC = () => {
           {/* Low */}
           <button
             type="button"
-            onClick={() => setRiskBandFilter(riskBandFilter === 'low' ? 'ALL' : 'low')}
+            onClick={() => { setRiskBandFilter(riskBandFilter === 'low' ? 'ALL' : 'low'); navigate(`/contracts/${contractId}/obligations${location.search}`); }}
             className={`p-3 rounded-lg border text-left transition-all ${
               riskBandFilter === 'low'
                 ? 'bg-emerald-950/90 border-emerald-600 ring-1 ring-emerald-500'
@@ -963,30 +1006,106 @@ export const ContractDetailPage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Contract Inconsistencies Panel (Step 36) */}
-      <ConflictPanel
+      {activeView === 'risk' && <>
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="mb-4"><h2 className="text-lg font-semibold text-slate-900">Obligation risk details</h2><p className="mt-1 text-sm text-slate-500">Scores, bands, and factors supplied by the contract analysis</p></div>
+          {obligations.length ? (
+            <div className="space-y-2">
+              {obligations.map((ob) => (
+                <details key={ob.id} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                  <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0"><span className="font-medium text-slate-800">{ob.action}{ob.object ? ` ${ob.object}` : ''}</span><span className="ml-2 text-slate-500">{ob.actor}</span></span>
+                    <span className={`rounded-md border px-2 py-1 text-xs font-medium capitalize ${getRiskBadgeClass(ob.risk.band)}`}>{ob.risk.band} · {ob.risk.score}</span>
+                  </summary>
+                  <div className="mt-4 border-t border-slate-100 pt-4">
+                    <ObligationRiskSection risk={ob.risk} obligationMap={obligationMap} />
+                  </div>
+                </details>
+              ))}
+            </div>
+          ) : <p className="text-sm text-slate-500">No obligation risk details are available.</p>}
+        </section>
+        <ConflictPanel
         conflicts={conflicts}
         clauses={clauses}
         obligations={obligations}
         onRefresh={() => refetch()}
         onSelectObligation={(ob) => setSelectedObligation(ob)}
         isOffline={isOffline}
-      />
+        />
+      </>}
+
+      {activeView === 'overview' && (
+        <>
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div><h2 className="text-lg font-semibold text-slate-900">Open conflicts</h2><p className="mt-1 text-sm text-slate-500">Potential inconsistencies flagged for review</p></div>
+            <Link to={`/contracts/${contractId}/risk${location.search}`} className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900">Review all</Link>
+          </div>
+          {conflicts.some((conflict) => conflict.status === 'open') ? (
+            <ul className="divide-y divide-slate-100">
+              {conflicts.filter((conflict) => conflict.status === 'open').slice(0, 3).map((conflict) => (
+                <li key={conflict.id} className="py-3">
+                  <p className="text-sm font-medium text-slate-800">{conflict.description}</p>
+                  <p className="mt-1 text-xs text-slate-500">{conflict.kind.replace(/_/g, ' ')} · {conflict.source === 'llm' ? 'AI flagged' : 'Rule detected'}</p>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-sm text-slate-500">No open conflicts are currently flagged.</p>}
+        </section>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div><h2 className="text-lg font-semibold text-slate-900">Obligation snapshot</h2><p className="mt-1 text-sm text-slate-500">A quick look at extracted commitments</p></div>
+              <Link to={`/contracts/${contractId}/obligations${location.search}`} className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900">View all</Link>
+            </div>
+            {obligations.length ? (
+              <div className="divide-y divide-slate-100">
+                {obligations.slice(0, 4).map((ob) => (
+                  <button key={ob.id} type="button" onClick={() => setSelectedObligation(ob)} className="flex w-full items-start justify-between gap-4 py-3 text-left hover:bg-slate-50">
+                    <span className="min-w-0"><span className="block truncate text-sm font-medium text-slate-800">{ob.action}{ob.object ? ` ${ob.object}` : ''}</span><span className="mt-1 block text-xs text-slate-500">{ob.actor} · {ob.category}</span></span>
+                    <span className={`shrink-0 rounded-md border px-2 py-1 text-xs font-medium capitalize ${getRiskBadgeClass(ob.risk.band)}`}>{ob.risk.band}</span>
+                  </button>
+                ))}
+              </div>
+            ) : <p className="text-sm text-slate-500">No obligations were identified.</p>}
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div><h2 className="text-lg font-semibold text-slate-900">Key events</h2><p className="mt-1 text-sm text-slate-500">Contract dates and linked milestones</p></div>
+              <Link to={`/contracts/${contractId}/timeline${location.search}`} className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900">Open timeline</Link>
+            </div>
+            {events.some((event) => event.date) ? (
+              <ul className="space-y-3">
+                {events.filter((event) => event.date).slice(0, 4).map((event) => (
+                  <li key={event.key} className="flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/70 px-3.5 py-3">
+                    <span className="min-w-0 truncate text-sm font-medium text-slate-800">{event.label}</span>
+                    <time className="shrink-0 text-sm tabular-nums text-slate-600">{formatDate(event.date)}</time>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-slate-500">No dated events are available yet.</p>}
+          </section>
+        </div>
+        </>
+      )}
 
       {/* Contract Timeline (Step 33) */}
-      <ContractTimeline
+      {activeView === 'timeline' && <ContractTimeline
         contractId={contract.id}
         events={events}
         obligations={obligations}
         edges={edges}
         onRefresh={() => refetch()}
         isOffline={isOffline}
-      />
+      />}
 
       {/* Contract Dependency Graph (Step 34) */}
-      <ContractDependencyGraph
+      {activeView === 'dependencies' && <ContractDependencyGraph
         contractId={contract.id}
         obligations={obligations}
         edges={edges}
@@ -994,10 +1113,10 @@ export const ContractDetailPage: React.FC = () => {
         onSelectObligation={(ob) => setSelectedObligation(ob)}
         onReviewObligation={(ob) => openReviewDrawer(ob)}
         isOffline={isOffline}
-      />
+      />}
 
       {/* Obligations Section */}
-      <div className="space-y-4">
+      {activeView === 'obligations' && <div className="space-y-4">
         {/* Section Header with "X of Y obligations" display */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="space-y-0.5">
@@ -1384,7 +1503,7 @@ export const ContractDetailPage: React.FC = () => {
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Backend Legal/Operational Disclaimer */}
       {disclaimer && (
@@ -1947,6 +2066,9 @@ export const ContractDetailPage: React.FC = () => {
           </aside>
         </div>
       )}
+    </div>
+        </main>
+      </div>
     </div>
   );
 };
