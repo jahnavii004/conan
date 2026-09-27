@@ -7,12 +7,13 @@ import type {
 } from '../types/api';
 import { useReviewConflict } from '../hooks/useObligations';
 
-interface ConflictPanelProps {
+export interface ConflictPanelProps {
   conflicts?: ConflictOut[];
   clauses?: ClauseOut[];
   obligations?: ObligationOut[];
   onRefresh: () => void;
   onSelectObligation?: (obligation: ObligationOut) => void;
+  isOffline?: boolean;
 }
 
 function formatConflictKind(kind: ConflictKind): string {
@@ -40,6 +41,7 @@ export const ConflictPanel: React.FC<ConflictPanelProps> = ({
   obligations = [],
   onRefresh,
   onSelectObligation,
+  isOffline = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'open' | 'dismissed' | 'all'>('open');
@@ -83,12 +85,13 @@ export const ConflictPanel: React.FC<ConflictPanelProps> = ({
   }, [activeTab, openConflicts, dismissedConflicts, conflicts]);
 
   const handleStartReview = useCallback((conflictId: string, action: 'dismiss' | 'reopen') => {
+    if (isOffline) return;
     setActiveConflictId(conflictId);
     setReviewAction(action);
     setReviewNote('');
     setIsConfirming(false);
     setActionError(null);
-  }, []);
+  }, [isOffline]);
 
   const handleCancelReview = useCallback(() => {
     setActiveConflictId(null);
@@ -100,6 +103,10 @@ export const ConflictPanel: React.FC<ConflictPanelProps> = ({
 
   const handleSubmitReview = useCallback(
     (conflictId: string) => {
+      if (isOffline) {
+        setActionError('Conflict review is not available in offline demo.');
+        return;
+      }
       setActionError(null);
       reviewConflictMutation.mutate(
         {
@@ -122,7 +129,7 @@ export const ConflictPanel: React.FC<ConflictPanelProps> = ({
         }
       );
     },
-    [reviewAction, reviewNote, reviewConflictMutation, onRefresh]
+    [reviewAction, reviewNote, reviewConflictMutation, onRefresh, isOffline]
   );
 
   if (conflicts.length === 0) {
@@ -315,16 +322,20 @@ export const ConflictPanel: React.FC<ConflictPanelProps> = ({
                           {isDismissed ? (
                             <button
                               type="button"
-                              onClick={() => handleStartReview(conflict.id, 'reopen')}
-                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                              onClick={() => !isOffline && handleStartReview(conflict.id, 'reopen')}
+                              disabled={isOffline}
+                              title={isOffline ? 'Not available in offline demo' : undefined}
+                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               ↺ Reopen Inconsistency
                             </button>
                           ) : (
                             <button
                               type="button"
-                              onClick={() => handleStartReview(conflict.id, 'dismiss')}
-                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors"
+                              onClick={() => !isOffline && handleStartReview(conflict.id, 'dismiss')}
+                              disabled={isOffline}
+                              title={isOffline ? 'Not available in offline demo' : undefined}
+                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               ✓ Dismiss Inconsistency
                             </button>
@@ -451,8 +462,9 @@ export const ConflictPanel: React.FC<ConflictPanelProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleSubmitReview(conflict.id)}
-                                disabled={reviewConflictMutation.isPending}
-                                className={`px-2.5 py-1 rounded text-xs font-semibold text-white transition-colors disabled:opacity-50 ${
+                                disabled={isOffline || reviewConflictMutation.isPending}
+                                title={isOffline ? 'Not available in offline demo' : undefined}
+                                className={`px-2.5 py-1 rounded text-xs font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                                   reviewAction === 'dismiss'
                                     ? 'bg-amber-600 hover:bg-amber-500 text-slate-950'
                                     : 'bg-indigo-600 hover:bg-indigo-500'
@@ -473,8 +485,10 @@ export const ConflictPanel: React.FC<ConflictPanelProps> = ({
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => setIsConfirming(true)}
-                                className={`px-3 py-1.5 rounded text-xs font-semibold text-white transition-colors ${
+                                onClick={() => !isOffline && setIsConfirming(true)}
+                                disabled={isOffline}
+                                title={isOffline ? 'Not available in offline demo' : undefined}
+                                className={`px-3 py-1.5 rounded text-xs font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                                   reviewAction === 'dismiss'
                                     ? 'bg-amber-600 hover:bg-amber-500 text-slate-950'
                                     : 'bg-indigo-600 hover:bg-indigo-500'

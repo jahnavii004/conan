@@ -293,6 +293,7 @@ export interface ContractDependencyGraphProps {
   onRefresh?: () => void;
   onSelectObligation?: (obligation: ObligationOut) => void;
   onReviewObligation?: (obligation: ObligationOut) => void;
+  isOffline?: boolean;
 }
 
 export const ContractDependencyGraph: React.FC<ContractDependencyGraphProps> = ({
@@ -302,6 +303,7 @@ export const ContractDependencyGraph: React.FC<ContractDependencyGraphProps> = (
   onRefresh,
   onSelectObligation,
   onReviewObligation,
+  isOffline = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [direction, setDirection] = useState<'LR' | 'TB'>('LR');
@@ -366,10 +368,10 @@ export const ContractDependencyGraph: React.FC<ContractDependencyGraphProps> = (
       data: {
         obligation: ob,
         onSelect: onSelectObligation,
-        onReview: onReviewObligation,
+        onReview: isOffline ? undefined : onReviewObligation,
       },
     }));
-  }, [obligations, usableEdges, onSelectObligation, onReviewObligation]);
+  }, [obligations, usableEdges, onSelectObligation, onReviewObligation, isOffline]);
 
   // Build raw edges with styling according to status & evidence_status
   const initialEdges = useMemo<Edge[]>(() => {
@@ -450,6 +452,10 @@ export const ContractDependencyGraph: React.FC<ContractDependencyGraphProps> = (
   // Edge review handler (Confirm / Reject)
   const handleReviewEdge = useCallback(
     (edgeId: string, action: 'confirm' | 'reject') => {
+      if (isOffline) {
+        setEdgeActionError('Dependency review is not available in offline demo.');
+        return;
+      }
       setEdgeActionError(null);
       patchEdgeMutation.mutate(
         {
@@ -471,7 +477,7 @@ export const ContractDependencyGraph: React.FC<ContractDependencyGraphProps> = (
         }
       );
     },
-    [patchEdgeMutation, reviewNote, onRefresh]
+    [patchEdgeMutation, reviewNote, onRefresh, isOffline]
   );
 
   // When clicking an edge on the canvas
@@ -672,16 +678,18 @@ export const ContractDependencyGraph: React.FC<ContractDependencyGraphProps> = (
                             <button
                               type="button"
                               onClick={() => handleReviewEdge(edge.id, 'confirm')}
-                              disabled={patchEdgeMutation.isPending}
-                              className="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                              disabled={isOffline || patchEdgeMutation.isPending}
+                              title={isOffline ? 'Not available in offline demo' : undefined}
+                              className="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {patchEdgeMutation.isPending ? 'Saving...' : '✓ Confirm'}
                             </button>
                             <button
                               type="button"
                               onClick={() => handleReviewEdge(edge.id, 'reject')}
-                              disabled={patchEdgeMutation.isPending}
-                              className="px-2.5 py-1 rounded bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                              disabled={isOffline || patchEdgeMutation.isPending}
+                              title={isOffline ? 'Not available in offline demo' : undefined}
+                              className="px-2.5 py-1 rounded bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {patchEdgeMutation.isPending ? 'Saving...' : '✕ Reject'}
                             </button>
@@ -702,11 +710,15 @@ export const ContractDependencyGraph: React.FC<ContractDependencyGraphProps> = (
                           <button
                             type="button"
                             onClick={() => {
-                              setReviewingEdgeId(edge.id);
-                              setReviewNote('');
-                              setEdgeActionError(null);
+                              if (!isOffline) {
+                                setReviewingEdgeId(edge.id);
+                                setReviewNote('');
+                                setEdgeActionError(null);
+                              }
                             }}
-                            className="text-[11px] font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                            disabled={isOffline}
+                            title={isOffline ? 'Not available in offline demo' : undefined}
+                            className="text-[11px] font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
                           >
                             Review &amp; verify dependency &rarr;
                           </button>

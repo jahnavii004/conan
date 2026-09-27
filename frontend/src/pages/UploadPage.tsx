@@ -373,7 +373,7 @@ export const UploadPage: React.FC = () => {
         </span>
 
         <Link
-          to="/contracts/demo"
+          to="/contracts/demo?offline=1"
           className="px-4 py-2 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-colors text-center whitespace-nowrap"
         >
           Try Sample Contract

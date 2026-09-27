@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useContractAnalysis } from '../hooks/useContract';
 import { useReviewObligation, usePatchObligation } from '../hooks/useObligations';
 import { ContractTimeline } from '../components/ContractTimeline';
@@ -91,13 +91,16 @@ export const ContractDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const contractId = id?.trim();
 
+  const [searchParams] = useSearchParams();
+  const isOffline = searchParams.get('offline') === '1' || contractId === 'demo';
+
   const {
     data: analysis,
     isLoading,
     isError,
     error,
     refetch,
-  } = useContractAnalysis(contractId);
+  } = useContractAnalysis(contractId, isOffline);
 
   // Table filtering states
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,7 +140,7 @@ export const ContractDetailPage: React.FC = () => {
   }, []);
 
   const handleConfirm = useCallback(() => {
-    if (!reviewDrawerObligation) return;
+    if (!reviewDrawerObligation || isOffline) return;
     setReviewError(null);
     reviewMutation.mutate(
       {
@@ -152,10 +155,10 @@ export const ContractDetailPage: React.FC = () => {
         onError: (err) => setReviewError(err.message),
       }
     );
-  }, [reviewDrawerObligation, reviewNote, reviewMutation, closeReviewDrawer, refetch]);
+  }, [reviewDrawerObligation, reviewNote, reviewMutation, closeReviewDrawer, refetch, isOffline]);
 
   const handleReject = useCallback(() => {
-    if (!reviewDrawerObligation) return;
+    if (!reviewDrawerObligation || isOffline) return;
     setReviewError(null);
     reviewMutation.mutate(
       {
@@ -170,10 +173,10 @@ export const ContractDetailPage: React.FC = () => {
         onError: (err) => setReviewError(err.message),
       }
     );
-  }, [reviewDrawerObligation, reviewNote, reviewMutation, closeReviewDrawer, refetch]);
+  }, [reviewDrawerObligation, reviewNote, reviewMutation, closeReviewDrawer, refetch, isOffline]);
 
   const handleStartEdit = useCallback(() => {
-    if (!reviewDrawerObligation) return;
+    if (!reviewDrawerObligation || isOffline) return;
     setReviewMode('edit');
     setEditFields({
       actor: reviewDrawerObligation.actor,
@@ -183,10 +186,10 @@ export const ContractDetailPage: React.FC = () => {
       modality: reviewDrawerObligation.modality,
       category: reviewDrawerObligation.category,
     });
-  }, [reviewDrawerObligation]);
+  }, [reviewDrawerObligation, isOffline]);
 
   const handleSaveEdit = useCallback(() => {
-    if (!reviewDrawerObligation) return;
+    if (!reviewDrawerObligation || isOffline) return;
     setReviewError(null);
     // Build a clean patch with only changed fields
     const patch: ObligationPatch = {};
@@ -217,7 +220,7 @@ export const ContractDetailPage: React.FC = () => {
         onError: (err) => setReviewError(err.message),
       }
     );
-  }, [reviewDrawerObligation, editFields, reviewNote, reviewMutation, closeReviewDrawer, refetch]);
+  }, [reviewDrawerObligation, editFields, reviewNote, reviewMutation, closeReviewDrawer, refetch, isOffline]);
 
   const isMutating = reviewMutation.isPending || patchMutation.isPending;
 
@@ -522,6 +525,24 @@ export const ContractDetailPage: React.FC = () => {
         </span>
       </div>
 
+      {/* Offline Demo Banner */}
+      {isOffline && (
+        <div className="p-3.5 rounded-lg border border-amber-800/80 bg-amber-950/40 text-amber-200 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
+            <span className="font-semibold text-amber-100">
+              Offline Demo Data (Read-Only)
+            </span>
+            <span className="text-amber-300/80 hidden sm:inline">
+              — changes and exports are disabled.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-amber-900/60 text-amber-300 border border-amber-700/80">
+            Bundled Fixture
+          </span>
+        </div>
+      )}
+
       {/* Contract Header */}
       <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/80 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -533,6 +554,11 @@ export const ContractDetailPage: React.FC = () => {
               {contract.is_sample && (
                 <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-purple-950/70 text-purple-300 border border-purple-800">
                   Sample Contract
+                </span>
+              )}
+              {isOffline && (
+                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-amber-950/70 text-amber-300 border border-amber-800">
+                  OFFLINE DEMO
                 </span>
               )}
             </div>
@@ -558,6 +584,7 @@ export const ContractDetailPage: React.FC = () => {
             <ContractExportDropdown
               contractId={contract.id}
               contractName={contract.name}
+              isOffline={isOffline}
             />
             <Link
               to="/upload"
@@ -827,6 +854,7 @@ export const ContractDetailPage: React.FC = () => {
         obligations={obligations}
         onRefresh={() => refetch()}
         onSelectObligation={(ob) => setSelectedObligation(ob)}
+        isOffline={isOffline}
       />
 
       {/* Contract Timeline (Step 33) */}
@@ -836,6 +864,7 @@ export const ContractDetailPage: React.FC = () => {
         obligations={obligations}
         edges={edges}
         onRefresh={() => refetch()}
+        isOffline={isOffline}
       />
 
       {/* Contract Dependency Graph (Step 34) */}
@@ -846,6 +875,7 @@ export const ContractDetailPage: React.FC = () => {
         onRefresh={() => refetch()}
         onSelectObligation={(ob) => setSelectedObligation(ob)}
         onReviewObligation={(ob) => openReviewDrawer(ob)}
+        isOffline={isOffline}
       />
 
       {/* Obligations Section */}
@@ -1220,8 +1250,10 @@ export const ContractDetailPage: React.FC = () => {
                         <td className="px-4 py-3.5 align-top">
                           <button
                             type="button"
-                            onClick={() => openReviewDrawer(ob)}
-                            className="px-2.5 py-1 rounded-md bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-800/80 text-[11px] font-medium text-indigo-300 hover:text-indigo-200 transition-colors whitespace-nowrap"
+                            onClick={() => !isOffline && openReviewDrawer(ob)}
+                            disabled={isOffline}
+                            title={isOffline ? 'Not available in offline demo' : 'Review obligation'}
+                            className="px-2.5 py-1 rounded-md bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-800/80 text-[11px] font-medium text-indigo-300 hover:text-indigo-200 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Review
                           </button>
@@ -1735,12 +1767,19 @@ export const ContractDetailPage: React.FC = () => {
                   Reviewer Actions
                 </h3>
 
+                {isOffline && (
+                  <div className="mb-3 p-2.5 rounded bg-amber-950/40 border border-amber-900/60 text-amber-300 text-xs">
+                    Review actions are disabled in offline demo mode.
+                  </div>
+                )}
+
                 {reviewMode === 'edit' ? (
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={handleSaveEdit}
-                      disabled={isMutating}
+                      disabled={isOffline || isMutating}
+                      title={isOffline ? 'Not available in offline demo' : undefined}
                       className="flex-1 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {reviewMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -1759,7 +1798,8 @@ export const ContractDetailPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleConfirm}
-                      disabled={isMutating}
+                      disabled={isOffline || isMutating}
+                      title={isOffline ? 'Not available in offline demo' : undefined}
                       className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {reviewMutation.isPending ? 'Confirming...' : '✓ Confirm'}
@@ -1767,7 +1807,8 @@ export const ContractDetailPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleReject}
-                      disabled={isMutating}
+                      disabled={isOffline || isMutating}
+                      title={isOffline ? 'Not available in offline demo' : undefined}
                       className="px-4 py-2 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {reviewMutation.isPending ? 'Rejecting...' : '✕ Reject'}
@@ -1775,8 +1816,9 @@ export const ContractDetailPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleStartEdit}
-                      disabled={isMutating}
-                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-semibold text-slate-200 hover:text-white transition-colors disabled:opacity-50"
+                      disabled={isOffline || isMutating}
+                      title={isOffline ? 'Not available in offline demo' : undefined}
+                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-semibold text-slate-200 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ✎ Edit Fields
                     </button>

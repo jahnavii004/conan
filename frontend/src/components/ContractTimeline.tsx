@@ -7,12 +7,13 @@ import type {
 } from '../types/api';
 import { useUpdateEvent } from '../hooks/useObligations';
 
-interface ContractTimelineProps {
+export interface ContractTimelineProps {
   contractId: string;
   events?: EventOut[];
   obligations?: ObligationOut[];
   edges?: EdgeOut[];
   onRefresh: () => void;
+  isOffline?: boolean;
 }
 
 interface ResolvedTimelineItem {
@@ -45,6 +46,7 @@ export const ContractTimeline: React.FC<ContractTimelineProps> = ({
   obligations = [],
   edges: _edges = [],
   onRefresh,
+  isOffline = false,
 }) => {
   // Active editing state for setting an event date
   // editingEventKey is the key of the event being updated
@@ -145,6 +147,10 @@ export const ContractTimeline: React.FC<ContractTimelineProps> = ({
   // Trigger date submission
   const handleSaveEventDate = useCallback(
     (eventKey: string) => {
+      if (isOffline) {
+        setActionError('Event date updates are not available in offline demo.');
+        return;
+      }
       if (!inputDate) {
         setActionError('Please select a valid date.');
         return;
@@ -169,16 +175,17 @@ export const ContractTimeline: React.FC<ContractTimelineProps> = ({
         }
       );
     },
-    [contractId, inputDate, updateEventMutation, onRefresh]
+    [contractId, inputDate, updateEventMutation, onRefresh, isOffline]
   );
 
   const handleStartEditing = useCallback(
     (eventKey: string, currentDate?: string | null) => {
+      if (isOffline) return;
       setEditingEventKey(eventKey);
       setInputDate(currentDate || '');
       setActionError(null);
     },
-    []
+    [isOffline]
   );
 
   const handleCancelEditing = useCallback(() => {
@@ -386,8 +393,10 @@ export const ContractTimeline: React.FC<ContractTimelineProps> = ({
                           ) : (
                             <button
                               type="button"
-                              onClick={() => handleStartEditing(targetEventKey)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors"
+                              onClick={() => !isOffline && handleStartEditing(targetEventKey)}
+                              disabled={isOffline}
+                              title={isOffline ? 'Not available in offline demo' : undefined}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <span>📅 Set trigger date ({matchingEvent?.label || targetEventKey})</span>
                             </button>
@@ -490,8 +499,10 @@ export const ContractTimeline: React.FC<ContractTimelineProps> = ({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleStartEditing(ev.key)}
-                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                          onClick={() => !isOffline && handleStartEditing(ev.key)}
+                          disabled={isOffline}
+                          title={isOffline ? 'Not available in offline demo' : undefined}
+                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           📅 Set event date
                         </button>
@@ -610,8 +621,10 @@ export const ContractTimeline: React.FC<ContractTimelineProps> = ({
                           {isEvent && ev && (
                             <button
                               type="button"
-                              onClick={() => handleStartEditing(ev.key, ev.date)}
-                              className="text-[11px] text-slate-400 hover:text-slate-200 self-start sm:self-auto transition-colors"
+                              onClick={() => !isOffline && handleStartEditing(ev.key, ev.date)}
+                              disabled={isOffline}
+                              title={isOffline ? 'Not available in offline demo' : undefined}
+                              className="text-[11px] text-slate-400 hover:text-slate-200 self-start sm:self-auto transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               ✏ Edit Date
                             </button>
