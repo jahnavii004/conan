@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useContractAnalysis } from '../hooks/useContract';
 import { useReviewObligation, usePatchObligation } from '../hooks/useObligations';
 import { ContractTimeline } from '../components/ContractTimeline';
+import { ContractDependencyGraph } from '../components/ContractDependencyGraph';
 import type {
   ObligationOut,
   ObligationPatch,
@@ -622,6 +623,16 @@ export const ContractDetailPage: React.FC = () => {
         obligations={obligations}
         edges={edges}
         onRefresh={() => refetch()}
+      />
+
+      {/* Contract Dependency Graph (Step 34) */}
+      <ContractDependencyGraph
+        contractId={contract.id}
+        obligations={obligations}
+        edges={edges}
+        onRefresh={() => refetch()}
+        onSelectObligation={(ob) => setSelectedObligation(ob)}
+        onReviewObligation={(ob) => openReviewDrawer(ob)}
       />
 
       {/* Obligations Section */}
