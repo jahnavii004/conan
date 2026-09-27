@@ -1,6 +1,7 @@
 import type {
   Analysis,
   ApiError,
+  ConflictReviewRequest,
   EdgeOut,
   EdgeReviewRequest,
   EventDateRequest,
@@ -100,6 +101,16 @@ export async function reviewObligation(
   body: ObligationReviewRequest
 ): Promise<Analysis> {
   return request<Analysis>(`/api/obligations/${encodeURIComponent(obligationId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function reviewConflict(
+  conflictId: string,
+  body: ConflictReviewRequest
+): Promise<Analysis> {
+  return request<Analysis>(`/api/conflicts/${encodeURIComponent(conflictId)}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
   });

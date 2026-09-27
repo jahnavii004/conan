@@ -5,6 +5,7 @@ import { useReviewObligation, usePatchObligation } from '../hooks/useObligations
 import { ContractTimeline } from '../components/ContractTimeline';
 import { ContractDependencyGraph } from '../components/ContractDependencyGraph';
 import { ObligationRiskSection } from '../components/ObligationRiskSection';
+import { ConflictPanel } from '../components/ConflictPanel';
 import type {
   ObligationOut,
   ObligationPatch,
@@ -309,6 +310,19 @@ export const ContractDetailPage: React.FC = () => {
     return counts;
   }, [analysis?.obligations]);
 
+  // Set of obligation IDs associated with open contractual conflicts (Step 36)
+  const conflictedObligationIds = useMemo(() => {
+    const set = new Set<string>();
+    if (analysis?.conflicts) {
+      for (const c of analysis.conflicts) {
+        if (c.status === 'open' && c.obligation_ids) {
+          c.obligation_ids.forEach((id) => set.add(id));
+        }
+      }
+    }
+    return set;
+  }, [analysis?.conflicts]);
+
   // Frontend-only filtered obligations
   const filteredObligations = useMemo(() => {
     if (!analysis?.obligations) return [];
@@ -490,7 +504,7 @@ export const ContractDetailPage: React.FC = () => {
   }
 
   // 4. Successful state: extract data
-  const { contract, stats, obligations, edges, events, as_of, disclaimer } = analysis;
+  const { contract, stats, obligations, edges, events, conflicts, clauses, as_of, disclaimer } = analysis;
 
   return (
     <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
@@ -799,6 +813,15 @@ export const ContractDetailPage: React.FC = () => {
         )}
       </div>
 
+      {/* Contract Inconsistencies Panel (Step 36) */}
+      <ConflictPanel
+        conflicts={conflicts}
+        clauses={clauses}
+        obligations={obligations}
+        onRefresh={() => refetch()}
+        onSelectObligation={(ob) => setSelectedObligation(ob)}
+      />
+
       {/* Contract Timeline (Step 33) */}
       <ContractTimeline
         contractId={contract.id}
@@ -1046,6 +1069,17 @@ export const ContractDetailPage: React.FC = () => {
                             <span className="text-[11px] text-slate-400 block">
                               to {ob.counterparty}
                             </span>
+                          )}
+                          {conflictedObligationIds.has(ob.id) && (
+                            <div className="mt-1.5">
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-950/90 text-amber-300 border border-amber-800/80 shadow-xs"
+                                title="Potential contractual inconsistency detected involving this obligation"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                Inconsistency Detected
+                              </span>
+                            </div>
                           )}
                         </td>
 

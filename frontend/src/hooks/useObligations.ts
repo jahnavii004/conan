@@ -3,11 +3,13 @@ import {
   getHealth,
   patchEdge,
   patchObligation,
+  reviewConflict,
   reviewObligation,
   updateEvent,
 } from '../lib/api';
 import type {
   Analysis,
+  ConflictReviewRequest,
   EdgeOut,
   EdgeReviewRequest,
   EventDateRequest,
@@ -37,6 +39,17 @@ export function useReviewObligation() {
   >({
     mutationFn: ({ obligationId, body }) =>
       reviewObligation(obligationId, body),
+  });
+}
+
+export function useReviewConflict() {
+  return useMutation<
+    Analysis,
+    Error,
+    { conflictId: string; body: ConflictReviewRequest }
+  >({
+    mutationFn: ({ conflictId, body }) =>
+      reviewConflict(conflictId, body),
   });
 }
 
